@@ -17,8 +17,12 @@ class yfbcblr():
     def createDataFiles(self):
         import os
         print('creating directories')
-        os.makedirs('/home/pi/HomeProject/YFBC/')
-        self.CSVOperation(['FirstName','LastName','Email','ContactNumber','MembershipType','UserID'], \
+
+        # create directory only if necessary
+        if not(os.path.exists('/home/pi/HomeProject/YFBC/')):
+            os.makedirs('/home/pi/HomeProject/YFBC/')
+            
+        self.CSVOperation(['FirstName','LastName','Email','ContactNumber','MembershipType','UserID','UniqueID'], \
                           'YFBCMemberinfo.csv','write','w')
         self.CSVOperation(['UserID','Date','Time'],'YFBCEventLogs.csv','write','w')
         self.CSVOperation(['UserID','PaymentFor','PaymentDate'],'YFBCMemberPaymentData.csv','write','w')
@@ -289,9 +293,9 @@ class yfbcblr():
                             exec('entry%d = tk.OptionMenu(memberInfoScreen, info[%d],*self.memTypes).place(relx=0.4, rely=0.15*(%d+1), anchor=%s)' % (i,i,i,repr('center')))
                     tk.Button(memberInfoScreen, text='Update Member Details', width=self.getRelativeSize(25,'width'), font=('Bookman Old Style',self.getRelativeSize(20,'area')), \
                                        command=lambda: self.memberDetails(uid,'replace',info,memberInfoScreen)).place(relx=0.4, rely=0.85, anchor='center')
-                    # Create a register card button
-                    registerButton = tk.Button(memberInfoScreen, text='Press button and scan tag to register member', width=self.getRelativeSize(40,'width'), command=lambda: self.writeToCard(uid), \
-                              font=('Bookman Old Style',self.getRelativeSize(20,'area'))).place(relx=0.80, rely=0.85, anchor='center')
+##                    # Create a register card button
+##                    registerButton = tk.Button(memberInfoScreen, text='Press button and scan new tag for registered member', width=self.getRelativeSize(40,'width'), command=lambda: self.writeToCard(uid,'existing'), \
+##                              font=('Bookman Old Style',self.getRelativeSize(20,'area'))).place(relx=0.80, rely=0.85, anchor='center')
 
                 if adminMode == 'delete':
                     for i in range(0,len(mdata)):
@@ -442,11 +446,11 @@ class yfbcblr():
                 exec('entry%d = tk.OptionMenu(newUserScreen, stringData[%d],*self.memTypes).place(relx=0.4, rely=0.15*(%d+1), anchor=%s)' % (i,i,i,repr('center')))
 
         # Done button
-        doneButton = tk.Button(newUserScreen, text='Submit', width=self.getRelativeSize(20,'width'), command=lambda: self.saveAndSendMemberDetails(stringData,newUserScreen), \
-                               font=('Bookman Old Style',self.getRelativeSize(20,'area'))).place(relx=0.60, rely=0.85, anchor='se')
+        doneButton = tk.Button(newUserScreen, text='Submit Details and Scan RFID tag to register member', command=lambda: self.saveAndSendMemberDetails(stringData,newUserScreen), \
+                               font=('Bookman Old Style',self.getRelativeSize(20,'area'))).place(relx=0.70, rely=0.8, relwidth=0.6, anchor='center')
 
         # Back button
-        backButton = tk.Button(newUserScreen, text='Back to Main Screen', width=self.getRelativeSize(30,'width'), font=('Bookman Old Style',self.getRelativeSize(20,'area')), \
+        backButton = tk.Button(newUserScreen, text='Back to Main Screen', width=self.getRelativeSize(30,'width'), font=('Bookman Old Style',self.getRelativeSize(25,'area')), \
                                command=lambda: self.removeScreen(newUserScreen)).place(relx=0.5, rely=0.9, anchor='center')
         
     def paymentEntryScreen(self):
@@ -568,15 +572,24 @@ class yfbcblr():
             tk.messagebox.showerror(parent=self.rootWindow,message='The data entered is invalid. Please reenter member details',title='Input Error')
             # Remains in the member entry screen until correct details are entered
         else:
-            fName,lName,email,contactNo,memType = data[0].get(),data[1].get(),data[2].get(),data[3].get(),data[4].get()
-            mID = self.generateMemberID([fName,lName])
-            self.CSVOperation([fName,lName,email,contactNo,memType,mID],'YFBCMemberinfo.csv','write','a')
-            if not(email=='<empty>'):
-                tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! An email has been sent with your details.')
-                self.sendemailToMember([fName,lName,email,contactNo,mID,memType],'YFBC Member Registration')
+            # get unique ID from card, ignore other content. Only continue is card has not been assigned
+            cardID,_ = self.readCard()
+            if not(self.CSVOperation(str(cardID),'YFBCMemberinfo.csv','read',[])):
+                fName,lName,email,contactNo,memType = data[0].get(),data[1].get(),data[2].get(),data[3].get(),data[4].get()
+                mID = self.generateMemberID([fName,lName])
+                self.CSVOperation([fName,lName,email,contactNo,memType,mID,cardID],'YFBCMemberinfo.csv','write','a')
+
+                # write unique ID to card
+                self.writeToCard(mID)
+                
+                if not(email=='<empty>'):
+                    tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! An email has been sent with your details.')
+                    self.sendemailToMember([fName,lName,email,contactNo,mID,memType],'YFBC Member Registration')
+                else:
+                    tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! No email sent as data is empty.')
+                self.removeScreen(screen)
             else:
-                tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! No email sent as data is empty.')
-            self.removeScreen(screen)
+                tk.messagebox.showinfo(parent=self.rootWindow,message='The RFID card/tag you are using is already been linked with a member''s account. Please try another.')
             
     def validate(self,data,toValidate):
         if toValidate == 'email':
@@ -682,7 +695,6 @@ class yfbcblr():
                         matchedRow = row
                         break
             return matchedRow
-            #return list(csv.reader(open(filename, newline=''), delimiter=','))
 
     def uploadDataFilesToDrive(self):
         import os
@@ -699,8 +711,8 @@ class yfbcblr():
     def writeToCard(self,text):
         writer = self.RFIDInit()
         id, text = writer.write(text)
-        tk.messagebox.showinfo(parent=self.rootWindow,message='Successfully written to card!')            
-
+        tk.messagebox.showinfo(parent=self.rootWindow,message='Successfully written to card!')
+        
     def readCard(self):
         reader = self.RFIDInit()
         id, text = reader.read()
