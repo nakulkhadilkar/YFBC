@@ -115,13 +115,18 @@ class yfbcblr():
             
     def writeEventLogsAfterCardDetection(self,uid):
         data = [uid, time.strftime('%d%b%Y'), time.strftime('%H:%M:%S')]
-        self.CSVOperation(data,'YFBCEventLogs.csv','write','a')
+        memberData = self.memberDetails(uid,'read',[],[])
+
+        # Do not write if the member has logged in once already that day
+        if not(self.validate(data[0:2],'checkin')):
+            self.CSVOperation(data,'YFBCEventLogs.csv','write','a')
+            welcomeMessage = 'Hi '+memberData[0]+' '+memberData[1]+',\n Welcome to YFBC.\n  Have a great game.'
+        else:
+            welcomeMessage = 'Hi '+memberData[0]+' '+memberData[1]+',\n You already logged in today.\n  Have a great game.'
 
         # Temporary frame to indicate successful check-in
         tempFrame = tk.Frame(self.rootWindow,takefocus=1)
         tempFrame.place(relx=0.5, rely=0.5, relheight=0.9,relwidth=0.9,anchor='center')
-        memberData = self.memberDetails(uid,'read',[],[])
-        welcomeMessage = 'Hi '+memberData[0]+' '+memberData[1]+',\n Welcome to YFBC.\n  Have a great game.'
         tk.Message(tempFrame,text=welcomeMessage,bg='lightgreen',font=("Bookman Old Style",14), \
                    ).place(relx=0.5, rely=0.5, relheight=1, relwidth=1,anchor='center')
         self.rootWindow.update()
@@ -129,6 +134,8 @@ class yfbcblr():
         # Update members list on main screen
         self.loggedMembersFrame.destroy()
         self.createFrameAndAddLoggedMembers()
+        self.monthlyMembersPayFrame.destroy()
+        self.createFrameAndAddMonthlyMembers()
         
         self.backToHomeScreen(tempFrame,5)
 
@@ -158,7 +165,8 @@ class yfbcblr():
             with open('YFBCEventLogs.csv','r') as csvfile:
                 rd = csv.reader(csvfile,delimiter=',')
                 for row in rd:
-                    if time.strftime('%d%b%Y') in row:
+                    # Add entries in the last four hours
+                    if (time.strftime('%d%b%Y') in row) and not(self.pastFourHours(row[2])):
                         loggedMembers.append([row[0],row[2]])
 
             # make a grid and add to frame
@@ -619,10 +627,22 @@ class yfbcblr():
                 isDataUniqueToMember = False
                 for row in rd:
                     if (data[0] in row) and (data[1] in row):
-                        print('came here')
                         isDataUniqueToMember = True
                         break
             return isDataUniqueToMember
+        elif toValidate == 'checkin':
+            import os,csv
+            # Change directory to where the data file will live
+            os.chdir('/home/pi/HomeProject/YFBC/')
+            with open('YFBCEventLogs.csv','r') as csvfile:
+                rd = csv.reader(csvfile,delimiter=',')
+                isMemberCheckedIn = False
+                for row in rd:
+                    if (data[0] in row) and (data[1] in row):
+                        print('came here')
+                        isMemberCheckedIn = True
+                        break
+            return isMemberCheckedIn
             
         elif toValidate == 'memberDetails':
             fName,lName,email,contactNo,memType = data[0].get(),data[1].get(),data[2].get(),data[3].get(),data[4].get()
@@ -647,6 +667,10 @@ class yfbcblr():
         elif WhatToCheck == 'Characters':
             return any(char.isalpha() for char in inputString)
 
+    def pastFourHours(self,timeStamp):
+        minutesPassed = 60*(int(time.strftime('%H'))-int(timeStamp[0:2])) + int(time.strftime('%M'))-int(timeStamp[3:5])
+        return (minutesPassed > 240)
+    
     def sendemailToMember(self,details,subject):
         """ Send emailto member's ID with his registered details"""
         # details - [fName,lName,email,contactNo,memType]
