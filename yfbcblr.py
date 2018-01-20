@@ -47,9 +47,11 @@ class yfbcblr():
 
     def deleteDir(self):
         result = tk.messagebox.askquestion('Delete files before quitting','Are you debugging? Delete data files?')
+        import RPi.GPIO as GPIO
         if result == 'yes':
             import os
             os.system('sudo rm -rf ''/home/pi/HomeProject/YFBC''')
+        GPIO.cleanup()
         self.rootWindow.destroy()
 
     def getRelativeSize(self,valueToConvert,dimension):
@@ -96,7 +98,6 @@ class yfbcblr():
 
         # Force root window update before waiting for card detection        
         self.rootWindow.update()
-        #self.cardDetected = False
         self.waitForCardDetection()
 
     def waitForCardDetection(self):
@@ -107,11 +108,12 @@ class yfbcblr():
         if str(dataFromCard) == 'adminkey':
             # Admin access
             self.adminScreen()
-        elif self.validate(str(dataFromCard),'userid'):
+        elif self.validate([str(dataFromCard),str(idFromCard)],'uniqueIDAndCard'):
             self.writeEventLogsAfterCardDetection(dataFromCard)
+        else:
+            self.waitForCardDetection()
             
     def writeEventLogsAfterCardDetection(self,uid):
-        #self.cardDetected = True
         data = [uid, time.strftime('%d%b%Y'), time.strftime('%H:%M:%S')]
         self.CSVOperation(data,'YFBCEventLogs.csv','write','a')
 
@@ -293,9 +295,7 @@ class yfbcblr():
                             exec('entry%d = tk.OptionMenu(memberInfoScreen, info[%d],*self.memTypes).place(relx=0.4, rely=0.15*(%d+1), anchor=%s)' % (i,i,i,repr('center')))
                     tk.Button(memberInfoScreen, text='Update Member Details', width=self.getRelativeSize(25,'width'), font=('Bookman Old Style',self.getRelativeSize(20,'area')), \
                                        command=lambda: self.memberDetails(uid,'replace',info,memberInfoScreen)).place(relx=0.4, rely=0.85, anchor='center')
-##                    # Create a register card button
-##                    registerButton = tk.Button(memberInfoScreen, text='Press button and scan new tag for registered member', width=self.getRelativeSize(40,'width'), command=lambda: self.writeToCard(uid,'existing'), \
-##                              font=('Bookman Old Style',self.getRelativeSize(20,'area'))).place(relx=0.80, rely=0.85, anchor='center')
+##                    # TODO Create a replace card button
 
                 if adminMode == 'delete':
                     for i in range(0,len(mdata)):
@@ -426,6 +426,9 @@ class yfbcblr():
         else:
             tk.messagebox.showerror(parent=self.rootWindow, \
                                         message='Good luck trying to fake the admin!',title='Input Error')
+            self.rootWindow.update()
+            # wait for tag again
+            self.waitForCardDetection()
             
     def newMemberRegistrationScreen(self):
         # Create a new ui screen at centre of screen for data entry and bring it into focus
@@ -607,6 +610,19 @@ class yfbcblr():
                 rd = csv.reader(csvfile,delimiter=',')
                 dataInCSV = list(rd)
             return any(data in subl for subl in dataInCSV)    
+        elif toValidate == 'uniqueIDAndCard':
+            import os,csv
+            # Change directory to where the data file will live
+            os.chdir('/home/pi/HomeProject/YFBC/')
+            with open('YFBCMemberinfo.csv','r') as csvfile:
+                rd = csv.reader(csvfile,delimiter=',')
+                isDataUniqueToMember = False
+                for row in rd:
+                    if (data[0] in row) and (data[1] in row):
+                        print('came here')
+                        isDataUniqueToMember = True
+                        break
+            return isDataUniqueToMember
             
         elif toValidate == 'memberDetails':
             fName,lName,email,contactNo,memType = data[0].get(),data[1].get(),data[2].get(),data[3].get(),data[4].get()
