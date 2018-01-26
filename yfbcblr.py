@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 ''' Python script to run the Graphical User Interface for member entry and payment tracking
 at Yellow Feathers Badminton Club, Bengaluru '''
-# Copyrights : Nakul Khadilkar, Vinod Khadilkar 2017
-# Update - December 8th 2017
+# Copyrights : Nakul Khadilkar, Vinod Khadilkar 2018
+# Update - Jan 2018
 
 import tkinter as tk
 import time
@@ -126,8 +126,8 @@ class yfbcblr():
 
         # Temporary frame to indicate successful check-in
         tempFrame = tk.Frame(self.rootWindow,takefocus=1)
-        tempFrame.place(relx=0.5, rely=0.5, relheight=0.9,relwidth=0.9,anchor='center')
-        tk.Message(tempFrame,text=welcomeMessage,bg='lightgreen',font=("Bookman Old Style",14), \
+        tempFrame.place(relx=0.5, rely=0.5, relheight=0.5,relwidth=0.5,anchor='center')
+        tk.Message(tempFrame,text=welcomeMessage,bg='lightgreen',justify='center', font=("Bookman Old Style",20), \
                    ).place(relx=0.5, rely=0.5, relheight=1, relwidth=1,anchor='center')
         self.rootWindow.update()
 
@@ -226,7 +226,7 @@ class yfbcblr():
             if allUsers == [] and adminView in ['view','edit','delete']:
                 tk.messagebox.showinfo(parent=self.rootWindow,message='No members added yet. Please add one to get started.',title='Input Error')
             else:
-                textLabel = tk.Label(userScreen, text='Select member :',bg='lightgreen',width=self.getRelativeSize(20,'width'), font=("Bookman Old Style",self.getRelativeSize(40,'area'))).place(relx=0.10, rely=0.4, anchor='nw')
+                textLabel = tk.Label(userScreen, text='Select member :',bg='lightgreen',width=self.getRelativeSize(20,'width'), font=("Bookman Old Style",self.getRelativeSize(40,'area'))).place(relx=0.20, rely=0.4, anchor='center')
                 selection = tk.Listbox(userScreen, width=self.getRelativeSize(40,'width'), height=self.getRelativeSize(8,'height'), font=("Bookman Old Style",self.getRelativeSize(20,'area')))
                 selection.place(relx=0.6, rely=0.45, anchor='center')
                 for names in self.getAllUserNames():
@@ -236,7 +236,7 @@ class yfbcblr():
                 selection.config(yscrollcommand=scrollbar.set)
                 selection.selection_set(0)
                 memStatusButton = tk.Button(userScreen, text='View Membership Details And Payment History', font=("Bookman Old Style",self.getRelativeSize(20,'area')), width=self.getRelativeSize(40,'width'), \
-                                            command=lambda: self.membershipDetailsScreen(self.getUserIDfromName(selection.selection_get()),True,userScreen,True,adminView), fg='black').place(relx=0.6, rely=0.7, anchor='nw')
+                                            command=lambda: self.membershipDetailsScreen(self.getUserIDfromName(selection.selection_get()),True,userScreen,True,adminView), fg='black').place(relx=0.6, rely=0.7, anchor='center')
 
             # Back button
             backButton = tk.Button(userScreen, text='Back to Main Screen', width=self.getRelativeSize(30,'width'), font=('Bookman Old Style',self.getRelativeSize(20,'area')), \
@@ -246,7 +246,7 @@ class yfbcblr():
         if not(uid == []):
             fName,lName = str.split(uid,' ')
             rowData = self.memberDetails(fName,'read',[],[])
-            return rowData[len(rowData)-1]
+            return rowData[len(rowData)-2]
         else:
             tk.messagebox.showerror(parent=self.rootWindow,message='Please select a user.',title='Input Error')
                 
@@ -302,7 +302,7 @@ class yfbcblr():
                         else:
                             exec('entry%d = tk.OptionMenu(memberInfoScreen, info[%d],*self.memTypes).place(relx=0.4, rely=0.15*(%d+1), anchor=%s)' % (i,i,i,repr('center')))
                     tk.Button(memberInfoScreen, text='Update Member Details', width=self.getRelativeSize(25,'width'), font=('Bookman Old Style',self.getRelativeSize(20,'area')), \
-                                       command=lambda: self.memberDetails(uid,'replace',info,memberInfoScreen)).place(relx=0.4, rely=0.85, anchor='center')
+                                       command=lambda: self.memberDetails(uid,'replace',info,memberInfoScreen)).place(relx=0.3, rely=0.85, anchor='center')
 ##                    # TODO Create a replace card button
 
                 if adminMode == 'delete':
@@ -315,9 +315,9 @@ class yfbcblr():
                 userIDLabel = tk.Label(memberInfoScreen, text=uidText,bg='lightblue',fg='darkred',width=self.getRelativeSize(20,'width'), font=("Bookman Old Style",self.getRelativeSize(20,'area'))).place(relx=0.90, rely=0.1, anchor='ne')   
 
             # Payment status frame
-            tk.Label(memberInfoScreen, text='Payment History',bg='lightblue',width=self.getRelativeSize(20,'width'), font=("Bookman Old Style",self.getRelativeSize(30,'area'))).place(relx=0.55, rely=0.05, anchor='nw')
+            tk.Label(memberInfoScreen, text='Payment History',bg='lightblue',width=self.getRelativeSize(20,'width'), font=("Bookman Old Style",self.getRelativeSize(30,'area'))).place(relx=0.60, rely=0.05, anchor='nw')
             paymentDetailsFrame = tk.Frame(memberInfoScreen,bg='white')
-            paymentDetailsFrame.place(relx=0.5,rely=0.1,relheight=0.7,relwidth=0.4,anchor='nw')
+            paymentDetailsFrame.place(relx=0.75,rely=0.5,relheight=0.7,relwidth=0.45,anchor='center')
             self.addPaymentHistoryToFrame(uid,paymentDetailsFrame)
 
             # Back button
@@ -345,9 +345,9 @@ class yfbcblr():
             tk.Label(frame, text="\n".join(re.findall("(?s).{,25}", lastFivePayments[e][1].replace('-',', ').replace(':',' of ')))[:-1],font=("Bookman Old Style",self.getRelativeSize(15,'area')), bg='white',borderwidth=2, relief='groove').place(relx=0, rely=(e+1)*(1/7), relheight=1/7, relwidth=1/2, anchor='nw')
             tk.Label(frame, text=lastFivePayments[e][2],font=("Bookman Old Style",self.getRelativeSize(15,'area')), bg='white',borderwidth=2, relief='groove').place(relx=0.5, rely=(e+1)*(1/7), relheight=1/7, relwidth=1/2, anchor='nw')
         if any(time.strftime('%B') in row[1] for row in lastFivePayments) and any(time.strftime('%Y') in row[1] for row in lastFivePayments):
-            tk.Label(frame, text='Note: ' + time.strftime('%B') + ' membership fees are paid.',font=("Bookman Old Style",self.getRelativeSize(25,'area')), bg='white', fg='blue', relief='groove').place(relx=0, rely=6/7, relheight=1/7, relwidth=1, anchor='nw')
+            tk.Label(frame, text='Note: ' + time.strftime('%B') + ' membership fees are paid.',font=("Bookman Old Style",self.getRelativeSize(20,'area')), bg='white', fg='blue', relief='groove').place(relx=0, rely=6/7, relheight=1/7, relwidth=1, anchor='nw')
         else:
-            tk.Label(frame, text='Note: ' + time.strftime('%B') + ' membership fees are due.',font=("Bookman Old Style",self.getRelativeSize(25,'area')), bg='white', fg='red', relief='groove').place(relx=0, rely=6/7, relheight=1/7, relwidth=1, anchor='nw')
+            tk.Label(frame, text='Note: ' + time.strftime('%B') + ' membership fees are due.',font=("Bookman Old Style",self.getRelativeSize(20,'area')), bg='white', fg='red', relief='groove').place(relx=0, rely=6/7, relheight=1/7, relwidth=1, anchor='nw')
             
         
     def memberDetails(self,uid,action,newData,screenToDelete):
@@ -372,8 +372,8 @@ class yfbcblr():
                 oldData = list(rd)
 
             # find row which needs update and replace row if update is needed
-            if not(oldData[oldData.index(matchedRow)][0:len(oldData[oldData.index(matchedRow)])-1] == [newData[0].get(),newData[1].get(),newData[2].get(),newData[3].get(),newData[4].get()]):
-                oldData[oldData.index(matchedRow)][0:len(oldData[oldData.index(matchedRow)])-1] = [newData[0].get(),newData[1].get(),newData[2].get(),newData[3].get(),newData[4].get()]
+            if not(oldData[oldData.index(matchedRow)][0:len(oldData[oldData.index(matchedRow)])-2] == [newData[0].get(),newData[1].get(),newData[2].get(),newData[3].get(),newData[4].get()]):
+                oldData[oldData.index(matchedRow)][0:len(oldData[oldData.index(matchedRow)])-2] = [newData[0].get(),newData[1].get(),newData[2].get(),newData[3].get(),newData[4].get()]
                 if not(self.validate(newData,'memberDetails')):
                     tk.messagebox.showerror(parent=self.rootWindow,message='The data entered is invalid. Please reenter member details',title='Input Error')
                 else:
@@ -506,7 +506,7 @@ class yfbcblr():
 
             # Payment Date Details
             pdScreen = tk.Frame(paymentScreen,bg='white')
-            pdScreen.place(relx=0.6,rely=0.3,relwidth=0.35,relheight=0.2,anchor='nw')
+            pdScreen.place(relx=0.85,rely=0.5,relwidth=0.25,relheight=0.2,anchor='center')
             label = tk.Label(pdScreen, text='Select Payment Date :',font=("Bookman Old Style",self.getRelativeSize(15,'area'))).place(relx=0,rely=0,relheight=0.6,relwidth=1,anchor='nw')
             # drop-down menus for payment date
             defaultValues = [tk.StringVar(),tk.StringVar(),tk.StringVar()]
@@ -639,7 +639,6 @@ class yfbcblr():
                 isMemberCheckedIn = False
                 for row in rd:
                     if (data[0] in row) and (data[1] in row):
-                        print('came here')
                         isMemberCheckedIn = True
                         break
             return isMemberCheckedIn
