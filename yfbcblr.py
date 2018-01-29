@@ -7,7 +7,7 @@ at Yellow Feathers Badminton Club, Bengaluru '''
 import tkinter as tk
 import time
 
-class yfbcblr29jan2018():
+class yfbcblr():
     # Note: A tkinter 'frame' is referred to as a screen throughtout this code
     def __init__(self):
         import calendar
@@ -765,7 +765,7 @@ if __name__ == '__main__':
     import RPi.GPIO as GPIO
     GPIO.setwarnings(False)
     try:
-        m = yfbcblr29jan2018()
+        m = yfbcblr()
     except e:
         print(e)
         GPIO.cleanup()
