@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 ''' Python script to run the Graphical User Interface for member entry and payment tracking
 at Yellow Feathers Badminton Club, Bengaluru '''
 # Copyrights : Nakul Khadilkar, Vinod Khadilkar 2018
@@ -7,7 +7,7 @@ at Yellow Feathers Badminton Club, Bengaluru '''
 import tkinter as tk
 import time
 
-class yfbcblr():
+class yfbcblr29jan2018():
     # Note: A tkinter 'frame' is referred to as a screen throughtout this code
     def __init__(self):
         import calendar
@@ -21,6 +21,9 @@ class yfbcblr():
         # create directory only if necessary
         if not(os.path.exists('/home/pi/HomeProject/YFBC/')):
             os.makedirs('/home/pi/HomeProject/YFBC/')
+            # add rw permission to this owner
+            os.system('sudo chmod u+rw /home/pi/HomeProject/YFBC/');
+
             
         self.CSVOperation(['FirstName','LastName','Email','ContactNumber','MembershipType','UserID','UniqueID'], \
                           'YFBCMemberinfo.csv','write','w')
@@ -50,7 +53,7 @@ class yfbcblr():
         import RPi.GPIO as GPIO
         if result == 'yes':
             import os
-            os.system('sudo rm -rf ''/home/pi/HomeProject/YFBC''')
+            os.system('rm -rf ''/home/pi/HomeProject/YFBC''')
         GPIO.cleanup()
         self.rootWindow.destroy()
 
@@ -702,7 +705,7 @@ class yfbcblr():
 
     def generateMemberID(self,dataNeeded):
         # Generate a unique member ID
-        # Logic : [<firstletter><fourlettersofthelastname><positionoffirstnamesecondletterintheserries><positionoflastnamelastletterinserries>]
+        # Logic : [<firstletter><fourlettersofthelastname><positionoffirstnamesecondletterintheserries/3><positionoflastnamelastletterinserries>]
         # numbering starts from 0
         from random import randint
         series = 'abcdefghijklmnopqrstuvwxyz'
@@ -712,7 +715,7 @@ class yfbcblr():
             memberid = dataNeeded[0].lower() + dataNeeded[1].lower() + str(randint(100,999))
         else:
             memberid = str(dataNeeded[0].lower()[0]) + str(dataNeeded[1].lower()[0:4]) + \
-                       str(series.index(dataNeeded[0].lower()[1])) + \
+                       str(int(series.index(dataNeeded[0].lower()[1])/3)) + \
                        str(series.index(dataNeeded[1].lower()[len(dataNeeded[1])-1]))
         return memberid
 
@@ -762,7 +765,7 @@ if __name__ == '__main__':
     import RPi.GPIO as GPIO
     GPIO.setwarnings(False)
     try:
-        m = yfbcblr()
+        m = yfbcblr29jan2018()
     except e:
         print(e)
         GPIO.cleanup()
