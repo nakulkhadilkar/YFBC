@@ -648,7 +648,7 @@ class yfbcblr():
             
         elif toValidate == 'memberDetails':
             fName,lName,email,contactNo,memType = data[0].get(),data[1].get(),data[2].get(),data[3].get(),data[4].get()
-            if self.checkIfStringHas(fName,'Numbers') or self.checkIfStringHas(lName,'Numbers') \
+            if self.checkIfStringHas(fName,'Numbers') or self.checkIfStringHas(lName,'Numbers') or not(len(str(fName).split()) == 1) \
                or self.checkIfStringHas(contactNo,'Characters') or sum(c.isalpha() for c in fName) < 2 \
                or sum(c.isdigit() for c in contactNo) != 10 or (not(self.validate(email,'email'))) or memType not in self.memTypes:
                 return False
