@@ -412,7 +412,7 @@ class yfbcblr():
     def adminScreen(self):
         self.cardDetected = True
         admin_pw = tk.simpledialog.askstring("Admin Access","Enter Admin Password : ", show='*')
-        if admin_pw == 'kethakkunj574228':
+        if admin_pw == 'myadminpassword':
             self.admScreen = tk.Frame(self.rootWindow)
             self.admScreen.place(width=self.rootWindow.winfo_width(),height=self.rootWindow.winfo_height())
             self.rootWindow.title('Admin Screen')
@@ -450,7 +450,7 @@ class yfbcblr():
         
         # Create entry boxes
         strings = ['First Name :','Last Name :','Email ID :','Contact No (exclude +91) :','Membership Type :']
-        stringData = [tk.StringVar(None),tk.StringVar(None,value='<empty>'),tk.StringVar(None,value='<empty>'),tk.StringVar(None),tk.StringVar(None)]
+        stringData = [tk.StringVar(None),tk.StringVar(None),tk.StringVar(None,value='<empty>'),tk.StringVar(None),tk.StringVar(None)]
             
         for i in range(0,len(strings)):
             exec('textLabel%d = tk.Label(newUserScreen, text=strings[%d], font=(%s,self.getRelativeSize(25,%s)), bg=%s).place(relx=0.05, rely=0.15*(%d+1), anchor=%s)' % (i,i,repr("Bookman Old Style"),repr('area'),repr('lightgreen'),i,repr('w')))
