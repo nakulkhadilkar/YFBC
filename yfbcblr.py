@@ -600,14 +600,14 @@ class yfbcblr():
                 # Also, get last entered row in the CSV file and validate before displaying success
                 # write
                 self.CSVOperation([fName,lName,email,contactNo,memType,mID,cardID],'YFBCMemberinfo.csv','write','a')
-                self.writeToCard(mID)
+                _,cardContent = self.writeToCard(mID)
 
                 # read last entry and card data
                 latestEntry = self.CSVOperation([],'YFBCMemberinfo.csv','lastrow',[])
                 
                 
                 # Compare with expected
-                if latestEntry == list([fName,lName,email,contactNo,memType,mID,str(cardID)]):
+                if (latestEntry == list([fName,lName,email,contactNo,memType,mID,str(cardID)])) and (cardContent == mID)):
                     # success - convey success message and remove screen          
                     if not(email=='<empty>'):
                         tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! An email has been sent with your details.')
@@ -776,6 +776,7 @@ class yfbcblr():
     def writeToCard(self,text):
         writer = self.RFIDInit()
         id, text = writer.write(text)
+        return id,text
         
     def readCard(self):
         reader = self.RFIDInit()
