@@ -2,7 +2,7 @@
 ''' Python script to run the Graphical User Interface for member entry and payment tracking
 at Yellow Feathers Badminton Club, Bengaluru '''
 # Copyrights : Nakul Khadilkar, Vinod Khadilkar 2018
-# Update - Jan 2018
+# Update - March 2018
 
 import tkinter as tk
 import time
@@ -22,7 +22,7 @@ class yfbcblr():
         if not(os.path.exists('/home/pi/HomeProject/YFBC/')):
             os.makedirs('/home/pi/HomeProject/YFBC/')
             # add rw permission to this owner
-            os.system('sudo chmod u+rw /home/pi/HomeProject/YFBC/');
+            os.system('chmod u+rw /home/pi/HomeProject/YFBC/');
 
             
         self.CSVOperation(['FirstName','LastName','Email','ContactNumber','MembershipType','UserID','UniqueID'], \
@@ -39,15 +39,18 @@ class yfbcblr():
         # reset main screen title
         self.rootWindow.title('Login Portal')
         
-    def backToHomeScreen(self,prevFrame,delay):
+    def backToHomeScreen(self,prevFrame,delay,resetCardDetectionFlag):
         time.sleep(delay)
         prevFrame.destroy()
         self.rootWindow.update()
-        # wait for tag again
-        #self.cardDetected = False
-        self.waitForCardDetection()
-        
 
+        if(resetCardDetectionFlag == True):
+            # reset the card detection flag
+            self.cardDetected = False
+        else:
+            # call the card detection loop to trigger detection 
+            self.detectRFIDCard()
+        
     def deleteDir(self):
         result = tk.messagebox.askquestion('Delete files before quitting','Are you debugging? Delete data files?')
         import RPi.GPIO as GPIO
@@ -99,31 +102,24 @@ class yfbcblr():
         waitLabel = tk.Label(self.mainScreen, text='Scan your tag to check-in.',bg='lightblue',width=self.getRelativeSize(40,'width'), \
                              font=("Bookman Old Style",self.getRelativeSize(40,'area'))).place(relx=0.5, rely=0.9, anchor='center')
 
-        # Force root window update before waiting for card detection        
+        # Force root window update 
         self.rootWindow.update()
-        self.waitForCardDetection()
 
-    def waitForCardDetection(self):
-        # Wait for tag detection, validate and log entry
-        idFromCard,dataFromCard = self.readCard()
-        # The unique user ID is only 8 characters long. Only read that many from the tag for validation
-        dataFromCard = dataFromCard[0:8]
-        if str(dataFromCard) == 'adminkey':
-            # Admin access
-            self.adminScreen()
-        elif self.validate([str(dataFromCard),str(idFromCard)],'uniqueIDAndCard'):
-            self.writeEventLogsAfterCardDetection(dataFromCard)
-        else:
-            self.waitForCardDetection()
-            
     def writeEventLogsAfterCardDetection(self,uid):
         data = [uid, time.strftime('%d%b%Y'), time.strftime('%H:%M:%S')]
         memberData = self.memberDetails(uid,'read',[],[])
 
-        # Do not write if the member has logged in once already that day
+        # Do not write if the member has logged in once already in the last 4 hours
         if not(self.validate(data[0:2],'checkin')):
+            # write to log file
             self.CSVOperation(data,'YFBCEventLogs.csv','write','a')
-            welcomeMessage = 'Hi '+memberData[0]+' '+memberData[1]+',\n Welcome to YFBC.\n  Have a great game.'
+            
+            # check that the entry is correct
+            latestEntry = self.CSVOperation([],'YFBCEventLogs.csv','lastrow',[])
+            if latestEntry == list(data):
+                welcomeMessage = 'Hi '+memberData[0]+' '+memberData[1]+',\n Welcome to YFBC.\n  Have a great game.'
+            else:
+                welcomeMessage = 'Hi '+memberData[0]+' '+memberData[1]+',\n Welcome to YFBC.\n  Your card was detected, but entry was not logged. Please re-scan your card.'
         else:
             welcomeMessage = 'Hi '+memberData[0]+' '+memberData[1]+',\n You already logged in today.\n  Have a great game.'
 
@@ -140,7 +136,7 @@ class yfbcblr():
         self.monthlyMembersPayFrame.destroy()
         self.createFrameAndAddMonthlyMembers()
         
-        self.backToHomeScreen(tempFrame,5)
+        self.backToHomeScreen(tempFrame,5,True)
 
     def createFrameAndAddLoggedMembers(self):
         self.loggedMembersFrame = tk.Frame(self.mainScreen, bg='white')
@@ -306,7 +302,6 @@ class yfbcblr():
                             exec('entry%d = tk.OptionMenu(memberInfoScreen, info[%d],*self.memTypes).place(relx=0.4, rely=0.15*(%d+1), anchor=%s)' % (i,i,i,repr('center')))
                     tk.Button(memberInfoScreen, text='Update Member Details', width=self.getRelativeSize(25,'width'), font=('Bookman Old Style',self.getRelativeSize(20,'area')), \
                                        command=lambda: self.memberDetails(uid,'replace',info,memberInfoScreen)).place(relx=0.3, rely=0.85, anchor='center')
-##                    # TODO Create a replace card button
 
                 if adminMode == 'delete':
                     for i in range(0,len(mdata)):
@@ -410,7 +405,6 @@ class yfbcblr():
 
             
     def adminScreen(self):
-        self.cardDetected = True
         admin_pw = tk.simpledialog.askstring("Admin Access","Enter Admin Password : ", show='*')
         if admin_pw == 'myadminpassword':
             self.admScreen = tk.Frame(self.rootWindow)
@@ -431,16 +425,15 @@ class yfbcblr():
                                              font=("Bookman Old Style",self.getRelativeSize(30,'area'))).place(width=self.getRelativeSize(600,'width'),height=self.getRelativeSize(100,'height'),relx=0.35, rely=0.6, anchor='w')
             postPayment = tk.Button(self.admScreen, text='Record Member Payment', command=lambda: self.paymentEntryScreen(), \
                                              font=("Bookman Old Style",self.getRelativeSize(30,'area'))).place(width=self.getRelativeSize(600,'width'),height=self.getRelativeSize(100,'height'),relx=0.675, rely=0.6, anchor='w')
-            back = tk.Button(self.admScreen, text='Back to Main Screen', command=lambda: self.backToHomeScreen(self.admScreen,0.75), \
+            back = tk.Button(self.admScreen, text='Back to Main Screen', command=lambda: self.backToHomeScreen(self.admScreen,0.75,False), \
                              font=("Bookman Old Style",self.getRelativeSize(30,'area'))).place(width=self.getRelativeSize(600,'width'),height=self.getRelativeSize(100,'height'),relx=0.50, rely=0.9, anchor='center')
-
         else:
             tk.messagebox.showerror(parent=self.rootWindow, \
                                         message='Good luck trying to fake the admin!',title='Input Error')
             self.rootWindow.update()
-            # wait for tag again
-            self.waitForCardDetection()
-            
+            # call the card detection loop to trigger detection 
+            self.detectRFIDCard()
+
     def newMemberRegistrationScreen(self):
         # Create a new ui screen at centre of screen for data entry and bring it into focus
         newUserScreen = tk.Frame(self.rootWindow)
@@ -553,11 +546,22 @@ class yfbcblr():
                 import calendar
                 months = [calendar.month_name[x+1] for x in list(data[1])]
                 dataToWrite = [data[0],'-'.join(months)+':'+str(data[2]),today]
+
+                # write to file
                 self.CSVOperation(dataToWrite,'YFBCMemberPaymentData.csv','write','a')
-                self.monthlyMembersPayFrame.destroy()
-                self.createFrameAndAddMonthlyMembers()
-                self.admScreen.lift()
-                self.removeScreen(screen)
+
+                # validate entry and exit current screen only on success
+                latestEntry = self.CSVOperation([],'YFBCMemberPaymentData.csv','lastrow',[])
+                if latestEntry == list(dataToWrite):
+                    # success - convey message and go to admin screen
+                    tk.messagebox.showinfo(parent=self.rootWindow,message='Payment successfully posted!')
+                    self.monthlyMembersPayFrame.destroy()
+                    self.createFrameAndAddMonthlyMembers()
+                    self.admScreen.lift()
+                    self.removeScreen(screen)
+                else:
+                    # failure - Stay on current screen
+                    tk.messagebox.showinfo(parent=self.rootWindow,message='Payment could not be posted. Please try again!')
 
     def setupScrollingListBox(self,parent,data,fontSize,positionData):
         # positionData = [relx,rely,relwidth,relheight]
@@ -586,22 +590,34 @@ class yfbcblr():
             tk.messagebox.showerror(parent=self.rootWindow,message='The data entered is invalid. Please reenter member details',title='Input Error')
             # Remains in the member entry screen until correct details are entered
         else:
-            # get unique ID from card, ignore other content. Only continue is card has not been assigned
+            # get unique ID from card, ignore other content. Only continue if card has not been assigned
             cardID,_ = self.readCard()
             if not(self.CSVOperation(str(cardID),'YFBCMemberinfo.csv','read',[])):
                 fName,lName,email,contactNo,memType = data[0].get(),data[1].get(),data[2].get(),data[3].get(),data[4].get()
                 mID = self.generateMemberID([fName,lName])
-                self.CSVOperation([fName,lName,email,contactNo,memType,mID,cardID],'YFBCMemberinfo.csv','write','a')
 
-                # write unique ID to card
+                # Write member data to file and uniqueID to card.
+                # Also, get last entered row in the CSV file and validate before displaying success
+                # write
+                self.CSVOperation([fName,lName,email,contactNo,memType,mID,cardID],'YFBCMemberinfo.csv','write','a')
                 self.writeToCard(mID)
+
+                # read last entry and card data
+                latestEntry = self.CSVOperation([],'YFBCMemberinfo.csv','lastrow',[])
                 
-                if not(email=='<empty>'):
-                    tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! An email has been sent with your details.')
-                    self.sendemailToMember([fName,lName,email,contactNo,mID,memType],'YFBC Member Registration')
+                
+                # Compare with expected
+                if latestEntry == list([fName,lName,email,contactNo,memType,mID,str(cardID)]):
+                    # success - convey success message and remove screen          
+                    if not(email=='<empty>'):
+                        tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! An email has been sent with your details.')
+                        self.sendemailToMember([fName,lName,email,contactNo,mID,memType],'YFBC Member Registration')
+                    else:
+                        tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! No email sent as data is empty.')
+                    self.removeScreen(screen)
                 else:
-                    tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! No email sent as data is empty.')
-                self.removeScreen(screen)
+                    # failure - convey retry message and stay on screen
+                    tk.messagebox.showinfo(parent=self.rootWindow,message='The data entered was not saved correctly, please try again.')
             else:
                 tk.messagebox.showinfo(parent=self.rootWindow,message='The RFID card/tag you are using is already been linked with a member''s account. Please try another.')
             
@@ -709,8 +725,8 @@ class yfbcblr():
         # numbering starts from 0
         from random import randint
         series = 'abcdefghijklmnopqrstuvwxyz'
-        if (dataNeeded[1]=='<empty>'):
-            memberid = dataNeeded[0].lower() + str(randint(1000,9999))
+        if (dataNeeded[1]=='<empty>' or dataNeeded[1]==''):
+            memberid = dataNeeded[0][0:4].lower() + str(randint(1000,9999))
         elif len(dataNeeded[1]) < 4:
             memberid = dataNeeded[0].lower() + dataNeeded[1].lower() + str(randint(100,999))
         else:
@@ -737,6 +753,13 @@ class yfbcblr():
                         matchedRow = row
                         break
             return matchedRow
+        elif mode == 'lastrow':
+            with open(filename,'r') as csvfile:
+                rd = csv.reader(csvfile,delimiter=',')
+                data = list(rd)
+                lastRow = data[len(data)-1]
+            return lastRow
+                    
 
     def uploadDataFilesToDrive(self):
         import os
@@ -753,19 +776,35 @@ class yfbcblr():
     def writeToCard(self,text):
         writer = self.RFIDInit()
         id, text = writer.write(text)
-        tk.messagebox.showinfo(parent=self.rootWindow,message='Successfully written to card!')
         
     def readCard(self):
         reader = self.RFIDInit()
         id, text = reader.read()
         return id,text
-    
+
+    def detectRFIDCard(self):
+        self.cardDetected = False
+        while(self.cardDetected == False):
+            idFromCard,dataFromCard = self.readCard()
+            # The unique user ID is only 8 characters long. Only read that many from the tag for validation
+            dataFromCard = dataFromCard[0:8]
+            if (str(dataFromCard) == 'adminkey') or (self.validate([str(dataFromCard),str(idFromCard)],'uniqueIDAndCard')):
+                self.cardDetected = True 
+                if str(dataFromCard) == 'adminkey':
+                    # Admin access
+                    self.adminScreen()
+                elif self.validate([str(dataFromCard),str(idFromCard)],'uniqueIDAndCard'):
+                    self.writeEventLogsAfterCardDetection(dataFromCard)
+        
 # Routine
 if __name__ == '__main__':
     import RPi.GPIO as GPIO
     GPIO.setwarnings(False)
     try:
         m = yfbcblr()
+        # Start card detection loop
+        m.detectRFIDCard()
+        
     except e:
         print(e)
         GPIO.cleanup()
