@@ -600,7 +600,6 @@ class yfbcblr():
                 # Also, get last entered row in the CSV file and validate before displaying success
                 # write
                 self.CSVOperation([fName,lName,email,contactNo,memType,mID,cardID],'YFBCMemberinfo.csv','write','a')
-<<<<<<< HEAD
                 _,dataWritten = self.writeToCard(mID)
 
                 # read last entry and card data
@@ -609,8 +608,6 @@ class yfbcblr():
                 
                 # Compare with expected
                 if (latestEntry == list([fName,lName,email,contactNo,memType,mID,str(cardID)])) and (dataWritten == mID):
-=======
->>>>>>> 7adb08fce76793b09e583c0e8efae3c75ccfba20
                     # success - convey success message and remove screen          
                     if not(email=='<empty>'):
                         tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! An email has been sent with your details.')
@@ -783,11 +780,7 @@ class yfbcblr():
         writer = self.RFIDInit()
         id, text = writer.write(text)
         return id,text
-<<<<<<< HEAD
     
-=======
-        
->>>>>>> 7adb08fce76793b09e583c0e8efae3c75ccfba20
     def readCard(self):
         reader = self.RFIDInit()
         id, text = reader.read()
@@ -813,15 +806,9 @@ if __name__ == '__main__':
     GPIO.setwarnings(False)
     try:
         m = yfbcblr()
-<<<<<<< HEAD
         m.count = 0
         # Start card detection loop
         m.detectRFIDCard()
-=======
-        # Start card detection loop
-        m.detectRFIDCard()
-        
->>>>>>> 7adb08fce76793b09e583c0e8efae3c75ccfba20
     except e:
         print(e)
         GPIO.cleanup()
