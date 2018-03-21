@@ -2,7 +2,7 @@
 ''' Python script to run the Graphical User Interface for member entry and payment tracking
 at Yellow Feathers Badminton Club, Bengaluru '''
 # Copyrights : Nakul Khadilkar, Vinod Khadilkar 2018
-# Update - March 2018
+# Update - March 21 2018
 
 import tkinter as tk
 import time
@@ -11,24 +11,26 @@ class yfbcblr():
     # Note: A tkinter 'frame' is referred to as a screen throughtout this code
     def __init__(self):
         import calendar
-        self.startScreen(False) 
         self.d,self.m,self.y = [list(range(1,32)),calendar.month_name[1:13],list(range(2017,2022,1))]
-
+        self.csvFileLocation = '/home/pi/HomeProject/YFBC/
+        self.startScreen(False) 
+        
     def createDataFiles(self):
         import os
         print('creating directories')
 
         # create directory only if necessary
-        if not(os.path.exists('/home/pi/HomeProject/YFBC/')):
-            os.makedirs('/home/pi/HomeProject/YFBC/')
+        if not(os.path.exists(self.csvFileLocation)):
+            os.makedirs(self.csvFileLocation)
             # add rw permission to this owner
-            os.system('chmod u+rw /home/pi/HomeProject/YFBC/');
+            command = 'chmod u+rw' + ' '+ self.csvFileLocation
+            os.system(command);
 
             
-        self.CSVOperation(['FirstName','LastName','Email','ContactNumber','MembershipType','UserID','UniqueID'], \
+        self.CSVOperation(['FirstName','LastName','Email','ContactNumber','MembershipType','UniqueCardID'], \
                           'YFBCMemberinfo.csv','write','w')
-        self.CSVOperation(['UserID','Date','Time'],'YFBCEventLogs.csv','write','w')
-        self.CSVOperation(['UserID','PaymentFor','PaymentDate'],'YFBCMemberPaymentData.csv','write','w')
+        self.CSVOperation(['UniqueCardID','Date','Time'],'YFBCEventLogs.csv','write','w')
+        self.CSVOperation(['UniqueCardID','PaymentFor','PaymentDate'],'YFBCMemberPaymentData.csv','write','w')
         
     # Make window not resizable
     def setNotResizable(self,window):
@@ -40,6 +42,13 @@ class yfbcblr():
         self.rootWindow.title('Login Portal')
         
     def backToHomeScreen(self,prevFrame,delay,resetCardDetectionFlag):
+
+        # Update members list on main screen
+        self.loggedMembersFrame.destroy()
+        self.createFrameAndAddLoggedMembers()
+        self.monthlyMembersPayFrame.destroy()
+        self.createFrameAndAddMonthlyMembers()
+
         time.sleep(delay)
         prevFrame.destroy()
         self.rootWindow.update()
@@ -56,7 +65,9 @@ class yfbcblr():
         import RPi.GPIO as GPIO
         if result == 'yes':
             import os
-            os.system('rm -rf ''/home/pi/HomeProject/YFBC''')
+            command = 'rm -rf ' + self.csvFileLocation 
+            os.system(command)
+
         GPIO.cleanup()
         self.rootWindow.destroy()
 
@@ -73,9 +84,9 @@ class yfbcblr():
     # The first screen with options to login as admin or other user
     def startScreen(self,wantToolBar):
         import os
-        if not(os.path.exists('/home/pi/HomeProject/YFBC/YFBCMemberinfo.csv')) \
-           and not(os.path.exists('/home/pi/HomeProject/YFBC/YFBCEventLogs.csv')) \
-           and not(os.path.exists('/home/pi/HomeProject/YFBC/YFBCMemberPaymentData.csv')):
+        if not(os.path.exists(self.csvFileLocation + 'YFBCMemberinfo.csv')) \
+           or not(os.path.exists(self.csvFileLocation + 'YFBCEventLogs.csv')) \
+           or not(os.path.exists(self.csvFileLocation + 'YFBCMemberPaymentData.csv')):
             self.createDataFiles()
 
         # Title, Club name and screen mode
@@ -130,12 +141,6 @@ class yfbcblr():
                    ).place(relx=0.5, rely=0.5, relheight=1, relwidth=1,anchor='center')
         self.rootWindow.update()
 
-        # Update members list on main screen
-        self.loggedMembersFrame.destroy()
-        self.createFrameAndAddLoggedMembers()
-        self.monthlyMembersPayFrame.destroy()
-        self.createFrameAndAddMonthlyMembers()
-        
         self.backToHomeScreen(tempFrame,5,True)
 
     def createFrameAndAddLoggedMembers(self):
@@ -149,59 +154,64 @@ class yfbcblr():
     def createFrameAndAddMonthlyMembers(self):
         self.monthlyMembersPayFrame = tk.Frame(self.mainScreen, bg='white')
         self.monthlyMembersPayFrame.place(relx=0.02, rely=0.475, relheight=0.75, relwidth=0.475, anchor='w')
-        tk.Label(self.monthlyMembersPayFrame, text='Monthly Members',font=("Bookman Old Style",self.getRelativeSize(20,'area')), borderwidth=2, relief='groove').place(relx=0, rely=0, relheight=0.05, relwidth=1, anchor='nw')
-        tk.Label(self.monthlyMembersPayFrame, text='Member Name',font=("Bookman Old Style",self.getRelativeSize(20,'area')), borderwidth=2, relief='groove').place(relx=0, rely=0.05, relheight=0.05, relwidth=1/2, anchor='nw')
-        tk.Label(self.monthlyMembersPayFrame, text='Payment Status',font=("Bookman Old Style",self.getRelativeSize(20,'area')), borderwidth=2, relief='groove').place(relx=0.5, rely=0.05, relheight=0.05, relwidth=1/2, anchor='nw')
+        tk.Label(self.monthlyMembersPayFrame, text=' Active Monthly Members',font=("Bookman Old Style",self.getRelativeSize(20,'area')), borderwidth=2, relief='groove').place(relx=0, rely=0, relheight=0.05, relwidth=1, anchor='nw')
+        tk.Label(self.monthlyMembersPayFrame, text='Column 1',font=("Bookman Old Style",self.getRelativeSize(20,'area')), borderwidth=2, relief='groove').place(relx=0, rely=0.05, relheight=0.05, relwidth=1/2, anchor='nw')
+        tk.Label(self.monthlyMembersPayFrame, text='Column 2',font=("Bookman Old Style",self.getRelativeSize(20,'area')), borderwidth=2, relief='groove').place(relx=0.5, rely=0.05, relheight=0.05, relwidth=1/2, anchor='nw')
         self.addMemberDataToList(self.monthlyMembersPayFrame,'monthly')
         
     def addMemberDataToList(self,frame,listType):
         import os,csv
-        os.chdir('/home/pi/HomeProject/YFBC/')
+        os.chdir(self.csvFileLocation)
         
         # logged member query
         if listType == 'logged':
-            loggedMembers = list()
+            loggedMemberIDs = list()
+
+            # get all unique card ID's from member list
+            IDList = self.getFileDataAsAList(self.csvFileLocation + 'YFBCMemberinfo.csv')
+            IDList = [item[-1] for item in IDList]
+            IDList.pop(0)
+
             with open('YFBCEventLogs.csv','r') as csvfile:
                 rd = csv.reader(csvfile,delimiter=',')
                 for row in rd:
                     # Add entries in the last four hours
-                    if (time.strftime('%d%b%Y') in row) and not(self.pastFourHours(row[2])):
-                        loggedMembers.append([row[0],row[2]])
+                    if (time.strftime('%d%b%Y') in row) and not(self.pastFourHours(row[2])) and (row[0] in IDList):
+                        loggedMemberIDs.append([row[0],row[2]])
 
             # make a grid and add to frame
-            limit = len(loggedMembers)
+            limit = len(loggedMemberIDs)
             for i in range(limit):
-                memberData = self.memberDetails(loggedMembers[i][0],'read',[],[])
-                tk.Label(frame, text=(memberData[0]+' '+memberData[1]), bg='white', font=("Bookman Old Style",self.getRelativeSize(18,'area')), \
+                memberData = self.memberDetails(loggedMemberIDs[i][0],'read',[],[])
+                tk.Label(frame, text=(memberData[0]+' '+memberData[1]), bg='white', font=("Bookman Old Style",self.getRelativeSize(15,'area')), \
                          borderwidth=2, relief='groove').place(relx=0, rely=0.1+(i*(0.9/limit)), relheight=(0.9/limit), relwidth=1/2, anchor='nw')
-                tk.Label(frame, text=loggedMembers[i][1], bg='white', font=("Bookman Old Style",self.getRelativeSize(18,'area')), \
+                tk.Label(frame, text=loggedMemberIDs[i][1], bg='white', font=("Bookman Old Style",self.getRelativeSize(15,'area')), \
                          borderwidth=2, relief='groove').place(relx=0.5, rely=0.1+(i*(0.9/limit)), relheight=(0.9/limit), relwidth=1/2, anchor='nw')
 
         # monthly member query
         elif listType == 'monthly':
             monthlyMembers = list()
+            activeMembers = list()
             with open('YFBCMemberinfo.csv','r') as csvfile:
                 rd = csv.reader(csvfile,delimiter=',')
                 for row in rd:
                     if 'Monthly' in row:
                         monthlyMembers.append(row[0]+' '+row[1])
-            # make a grid and add to frame
+            monthlyMembers.sort()
+            # make a grid with active members and add to frame
             limit = len(monthlyMembers)
             for i in range(limit):
-                paid = str('Due')
                 # get payment details for member
-                memberName = self.getUserIDfromName(monthlyMembers[i])
+                userCardID = self.getUserIDfromName(monthlyMembers[i])
                 with open('YFBCMemberPaymentData.csv','r') as csvfile:
                     rd = csv.reader(csvfile,delimiter=',')
                     for row in rd:
-                        if (memberName in row) and str(time.strftime('%B') in row[1]):
-                            paid = 'Paid'
-                monthlyMembers[i] = [monthlyMembers[i],paid]
-                
-                tk.Label(frame, text=monthlyMembers[i][0], bg='white', font=("Bookman Old Style",self.getRelativeSize(18,'area')), \
-                         borderwidth=2, relief='groove').place(relx=0, rely=0.1+(i*(0.9/limit)), relheight=(0.9/limit), relwidth=1/2, anchor='nw')
-                tk.Label(frame, text=monthlyMembers[i][1], bg='white', font=("Bookman Old Style",self.getRelativeSize(18,'area')), \
-                         borderwidth=2, relief='groove').place(relx=0.5, rely=0.1+(i*(0.9/limit)), relheight=(0.9/limit), relwidth=1/2, anchor='nw')
+                        if (userCardID in row[0]) and str(time.strftime('%B') in row[1]) and not(monthlyMembers[i] in activeMembers):
+                            activeMembers.append(monthlyMembers[i])
+            for n in range(len(activeMembers)):
+                ypos = int(((n-1)%2)+((n-1)/2)) # need a series that goes like [0,0,1,1,2,2.....]
+                tk.Label(frame, text=activeMembers[n], bg='white', font=("Bookman Old Style",self.getRelativeSize(10,'area')), \
+                         borderwidth=2, relief='groove').place(relx=(n%2)*0.5, rely=0.1+(ypos*(0.9/limit)), relheight=(0.9/limit), relwidth=1/2, anchor='nw')
             
     def memberScreen(self,forAdmin,adminView):
         # member check-in screen
@@ -228,7 +238,7 @@ class yfbcblr():
                 textLabel = tk.Label(userScreen, text='Select member :',bg='lightgreen',width=self.getRelativeSize(20,'width'), font=("Bookman Old Style",self.getRelativeSize(40,'area'))).place(relx=0.20, rely=0.4, anchor='center')
                 selection = tk.Listbox(userScreen, width=self.getRelativeSize(40,'width'), height=self.getRelativeSize(8,'height'), font=("Bookman Old Style",self.getRelativeSize(20,'area')))
                 selection.place(relx=0.6, rely=0.45, anchor='center')
-                for names in self.getAllUserNames():
+                for names in allUsers:
                     selection.insert(tk.END,names)
                 scrollbar = tk.Scrollbar(selection,orient=tk.VERTICAL, command=selection.yview)
                 scrollbar.place(relx=1,rely=0.5,relheight=1,anchor='e')
@@ -244,8 +254,8 @@ class yfbcblr():
     def getUserIDfromName(self,uid):
         if not(uid == []):
             fName,lName = str.split(uid,' ')
-            rowData = self.memberDetails(fName,'read',[],[])
-            return rowData[len(rowData)-2]
+            rowData = self.memberDetails([fName,lName],'read',[],[])
+            return rowData[len(rowData)-1]
         else:
             tk.messagebox.showerror(parent=self.rootWindow,message='Please select a user.',title='Input Error')
                 
@@ -309,7 +319,7 @@ class yfbcblr():
                         exec('value%d = tk.Label(memberInfoScreen, text=details[%d], bg=%s, fg=%s,font=(%s,self.getRelativeSize(25,%s))).place(relx=0.4, rely=0.15*(%d+1), anchor=%s)' % (i,i,repr('white'),repr('darkred'),repr("Bookman Old Style"),repr('area'),i,repr('e')))
                     tk.Button(memberInfoScreen, text='Delete Member', width=self.getRelativeSize(15,'width'), font=('Bookman Old Style',self.getRelativeSize(20,'area')), \
                                        command=lambda: self.memberDetails(uid,adminMode,[],memberInfoScreen)).place(relx=0.5, rely=0.875, anchor='center')
-                uidText = 'User ID : ' + details[5]
+                uidText = 'CardID : ' + details[5]
                 userIDLabel = tk.Label(memberInfoScreen, text=uidText,bg='lightblue',fg='darkred',width=self.getRelativeSize(20,'width'), font=("Bookman Old Style",self.getRelativeSize(20,'area'))).place(relx=0.90, rely=0.1, anchor='ne')   
 
             # Payment status frame
@@ -329,7 +339,7 @@ class yfbcblr():
 
         # Get last 5 payment records for the user
         import os,csv,re
-        os.chdir('/home/pi/HomeProject/YFBC/')
+        os.chdir(self.csvFileLocation)
         matchedRows = []
         with open('YFBCMemberPaymentData.csv','r') as csvfile:
             rd = csv.reader(csvfile,delimiter=',')
@@ -351,47 +361,49 @@ class yfbcblr():
     def memberDetails(self,uid,action,newData,screenToDelete):
         import os,csv
         # Change directory to where the data file will live
-        os.chdir('/home/pi/HomeProject/YFBC/')
+        os.chdir(self.csvFileLocation)
         matchedRow = []
         with open('YFBCMemberinfo.csv','r') as csvfile:
             rd = csv.reader(csvfile,delimiter=',')
-            for row in rd:
-                if uid in row:
-                    matchedRow = row
-                    break
+            if not(len(uid) == 2):
+                for row in rd:
+                    if uid in row:
+                        matchedRow = row
+                        break
+            else:
+                for row in rd:
+                    if (uid[0] in row) and (uid[1] in row):
+                        matchedRow = row
+                        break
         
         if action == 'read':
             return matchedRow
         elif action == 'replace':
-            oldData = []
-            # Read all data from the csv file.
-            with open('YFBCMemberinfo.csv', 'r') as b:
-                rd = csv.reader(b)
-                oldData = list(rd)
 
-            # find row which needs update and replace row if update is needed
-            if not(oldData[oldData.index(matchedRow)][0:len(oldData[oldData.index(matchedRow)])-2] == [newData[0].get(),newData[1].get(),newData[2].get(),newData[3].get(),newData[4].get()]):
-                oldData[oldData.index(matchedRow)][0:len(oldData[oldData.index(matchedRow)])-2] = [newData[0].get(),newData[1].get(),newData[2].get(),newData[3].get(),newData[4].get()]
-                if not(self.validate(newData,'memberDetails')):
-                    tk.messagebox.showerror(parent=self.rootWindow,message='The data entered is invalid. Please reenter member details',title='Input Error')
-                else:
-                    tk.messagebox.showinfo(parent=self.rootWindow,message='Member details have been saved. An email has been sent for future reference.')
+            oldData = self.getFileDataAsAList(self.csvFileLocation + 'YFBCMemberinfo.csv')
+            
+            # matchedRow is the one to be updated
+            if not(self.validate(newData,'memberDetails')):
+                tk.messagebox.showerror(parent=self.rootWindow,message='The data entered is invalid. Please reenter member details',title='Input Error')
+            else:
+                if not(oldData[oldData.index(matchedRow)][0:len(oldData[oldData.index(matchedRow)])-1] == [newData[0].get(),newData[1].get(),newData[2].get(),newData[3].get(),newData[4].get()]):
+                    oldData[oldData.index(matchedRow)][0:len(oldData[oldData.index(matchedRow)])-1] = [newData[0].get(),newData[1].get(),newData[2].get(),newData[3].get(),newData[4].get()]
                     # Write data to the csv file
                     with open('YFBCMemberinfo.csv', 'w') as csvfile:
                         wrt = csv.writer(csvfile,delimiter=',')
                         for row in oldData:
                             wrt.writerow(row[0:len(row)])
+                    tk.messagebox.showinfo(parent=self.rootWindow,message='Member details have been saved. An email has been sent for future reference.')
                     self.removeScreen(screenToDelete)
-            else:
-                tk.messagebox.showinfo(parent=self.rootWindow,message='No changes made to member details. Update not needed.')
-                self.removeScreen(screenToDelete)
+                else:
+                    tk.messagebox.showinfo(parent=self.rootWindow,message='No changes made to member details. Update not needed.')
+                    self.removeScreen(screenToDelete)
         elif action == 'delete':
             oldData = []
-            # Read all data from the csv file.
-            with open('YFBCMemberinfo.csv', 'r') as b:
-                rd = csv.reader(b)
-                oldData = list(rd)
 
+            # Read all data from the csv file.
+            oldData = self.getFileDataAsAList(self.csvFileLocation + 'YFBCMemberinfo.csv')
+            
             # Pop up the row to delete
             oldData.pop(oldData.index(matchedRow))
 
@@ -406,7 +418,7 @@ class yfbcblr():
             
     def adminScreen(self):
         admin_pw = tk.simpledialog.askstring("Admin Access","Enter Admin Password : ", show='*')
-        if admin_pw == 'myadminpassword':
+        if admin_pw == 'test':
             self.admScreen = tk.Frame(self.rootWindow)
             self.admScreen.place(width=self.rootWindow.winfo_width(),height=self.rootWindow.winfo_height())
             self.rootWindow.title('Admin Screen')
@@ -530,7 +542,6 @@ class yfbcblr():
             # has empty selections
             tk.messagebox.showinfo(parent=self.rootWindow,message='One or more entries have not been selected. Try again!',title='Input Error')
         else:
-            #today = str(self.d[payDate[0]])+' '+self.m[payDate[1][0]]+' '+str(self.y[payDate[2][0]])
             today = str(self.d[self.d.index(int(payDate[0]))]) + ' ' + self.m[self.m.index(payDate[1])] + ' ' + str(self.y[self.y.index(int(payDate[2]))])
             if not(self.validate(today,'date')):
                      tk.messagebox.showinfo(parent=self.rootWindow,message='Invalid date entered please retry!',title='Input Error')
@@ -545,23 +556,39 @@ class yfbcblr():
                 # entries = [<userid>,<'mon1-mon2-mon:year'>]
                 import calendar
                 months = [calendar.month_name[x+1] for x in list(data[1])]
-                dataToWrite = [data[0],'-'.join(months)+':'+str(data[2]),today]
+                monthString = '-'.join(months)+':'+str(data[2])
+                dataToWrite = [data[0],monthString,today]
 
-                # write to file
-                self.CSVOperation(dataToWrite,'YFBCMemberPaymentData.csv','write','a')
+                # Check if payment has already been made
+                PaymentData = self.getFileDataAsAList(self.csvFileLocation + 'YFBCMemberPaymentData.csv')
+                PaymentData.pop(0) # remove first line
+                PaymentData = [item[:-1] for item in PaymentData] # remove payment date field
+                PreviousPayment = False
+                for d in PaymentData:
+                    # If unique card ID, month, year combination is found in the same line
+                    if (d[0] == str(data[0])) and (0 in [d[1].find(i) for i in months]) and (str(data[2]) in d[1]):
+                        PreviousPayment = True
+                        break                
 
-                # validate entry and exit current screen only on success
-                latestEntry = self.CSVOperation([],'YFBCMemberPaymentData.csv','lastrow',[])
-                if latestEntry == list(dataToWrite):
-                    # success - convey message and go to admin screen
-                    tk.messagebox.showinfo(parent=self.rootWindow,message='Payment successfully posted!')
-                    self.monthlyMembersPayFrame.destroy()
-                    self.createFrameAndAddMonthlyMembers()
-                    self.admScreen.lift()
-                    self.removeScreen(screen)
+                # write to file if not already paid
+                if PreviousPayment == False:
+                    self.CSVOperation(dataToWrite,'YFBCMemberPaymentData.csv','write','a')
+
+                    # validate entry and exit current screen only on success
+                    latestEntry = self.CSVOperation([],'YFBCMemberPaymentData.csv','lastrow',[])
+                    if latestEntry == list(dataToWrite):
+                        # success - convey message and go to admin screen
+                        tk.messagebox.showinfo(parent=self.rootWindow,message='Payment successfully posted!')
+                        self.monthlyMembersPayFrame.destroy()
+                        self.createFrameAndAddMonthlyMembers()
+                        self.admScreen.lift()
+                        self.removeScreen(screen)
+                    else:
+                        # failure - Stay on current screen
+                        tk.messagebox.showinfo(parent=self.rootWindow,message='Payment could not be posted. Please try again!')
                 else:
                     # failure - Stay on current screen
-                    tk.messagebox.showinfo(parent=self.rootWindow,message='Payment could not be posted. Please try again!')
+                    tk.messagebox.showinfo(parent=self.rootWindow,message='A payment for the month has already been posted!')
 
     def setupScrollingListBox(self,parent,data,fontSize,positionData):
         # positionData = [relx,rely,relwidth,relheight]
@@ -576,13 +603,14 @@ class yfbcblr():
 
     def getAllUserNames(self):
         import os,csv
-        os.chdir('/home/pi/HomeProject/YFBC')
+        os.chdir(self.csvFileLocation)
         ids = []
         with open('YFBCMemberinfo.csv') as f:
             rd = csv.reader(f, delimiter=',')
             for i in rd:
                 ids.append('%s %s' % (i[0],i[1]))
         ids.pop(0)
+        ids.sort() # sort alphabetically
         return ids
         
     def saveAndSendMemberDetails(self,data,screen):
@@ -594,24 +622,19 @@ class yfbcblr():
             cardID,_ = self.readCard()
             if not(self.CSVOperation(str(cardID),'YFBCMemberinfo.csv','read',[])):
                 fName,lName,email,contactNo,memType = data[0].get(),data[1].get(),data[2].get(),data[3].get(),data[4].get()
-                mID = self.generateMemberID([fName,lName])
-
-                # Write member data to file and uniqueID to card.
-                # Also, get last entered row in the CSV file and validate before displaying success
-                # write
-                self.CSVOperation([fName,lName,email,contactNo,memType,mID,cardID],'YFBCMemberinfo.csv','write','a')
-                _,dataWritten = self.writeToCard(mID)
-
+                
+                # Write member data to file
+                self.CSVOperation([fName,lName,email,contactNo,memType,cardID],'YFBCMemberinfo.csv','write','a')
+                
                 # read last entry and card data
                 latestEntry = self.CSVOperation([],'YFBCMemberinfo.csv','lastrow',[])
                 
-                
                 # Compare with expected
-                if (latestEntry == list([fName,lName,email,contactNo,memType,mID,str(cardID)])) and (dataWritten == mID):
+                if latestEntry == list([fName,lName,email,contactNo,memType,str(cardID)]):
                     # success - convey success message and remove screen          
                     if not(email=='<empty>'):
                         tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! An email has been sent with your details.')
-                        self.sendemailToMember([fName,lName,email,contactNo,mID,memType],'YFBC Member Registration')
+                        self.sendemailToMember([fName,lName,email,contactNo,memType],'YFBC Member Registration')
                     else:
                         tk.messagebox.showinfo(parent=self.rootWindow,message='Member successfully registered! No email sent as data is empty.')
                     self.removeScreen(screen)
@@ -632,27 +655,21 @@ class yfbcblr():
         elif toValidate == 'userid':
             import os,csv
             # Change directory to where the data file will live
-            os.chdir('/home/pi/HomeProject/YFBC/')
-            with open('YFBCMemberinfo.csv','r') as csvfile:
-                rd = csv.reader(csvfile,delimiter=',')
-                dataInCSV = list(rd)
-            return any(data in subl for subl in dataInCSV)    
-        elif toValidate == 'uniqueIDAndCard':
+            os.chdir(self.csvFileLocation)
+            dataInCSV = self.getFileDataAsAList(self.csvFileLocation + 'YFBCMemberinfo.csv')
+            return any(data in subl for subl in dataInCSV)
+        
+        elif toValidate == 'uniqueCardID':
             import os,csv
             # Change directory to where the data file will live
-            os.chdir('/home/pi/HomeProject/YFBC/')
-            with open('YFBCMemberinfo.csv','r') as csvfile:
-                rd = csv.reader(csvfile,delimiter=',')
-                isDataUniqueToMember = False
-                for row in rd:
-                    if (data[0] in row) and (data[1] in row):
-                        isDataUniqueToMember = True
-                        break
-            return isDataUniqueToMember
+            os.chdir(self.csvFileLocation)
+            csvData = self.getFileDataAsAList(self.csvFileLocation + 'YFBCMemberinfo.csv')
+            isIDPresent = any(data in ind for ind in csvData)
+            return isIDPresent
         elif toValidate == 'checkin':
             import os,csv
             # Change directory to where the data file will live
-            os.chdir('/home/pi/HomeProject/YFBC/')
+            os.chdir(self.csvFileLocation)
             with open('YFBCEventLogs.csv','r') as csvfile:
                 rd = csv.reader(csvfile,delimiter=',')
                 isMemberCheckedIn = False
@@ -690,7 +707,7 @@ class yfbcblr():
         return (minutesPassed > 240)
     
     def sendemailToMember(self,details,subject):
-        """ Send emailto member's ID with his registered details"""
+        """ Send email to member's ID with his registered details"""
         # details - [fName,lName,email,contactNo,memType]
         import smtplib
         from email.mime.text import MIMEText
@@ -705,8 +722,8 @@ class yfbcblr():
         smtpserver.ehlo()
         smtpserver.login(gmail_user, gmail_password)  # Log in to server
         message = ('Hi %s,\n\nYour registration is complete. Here are the details stored in our database for future reference.\n' \
-                  'First Name : %s\nLast Name : %s\nEmail ID : %s\nContact Number : +91%s\nUnique member ID : %s\nMembership Type : %s\n\n\nThank' \
-                   ' you,\nYellow Feathers Badminton Club\nBengaluru' % (details[0],details[0],details[1],details[2],details[3],details[4],details[5]))
+                  'First Name : %s\nLast Name : %s\nEmail ID : %s\nContact Number : +91%s\nMembership Type : %s\n\n\nThank' \
+                   ' you,\nYellow Feathers Badminton Club\nBengaluru' % (details[0],details[0],details[1],details[2],details[3],details[4]))
         msg = MIMEText(message)
         club = 'Yellow Feather Badminton Club,  Bengaluru'
         cc = 'vinkhadilkar@gmail.com'
@@ -719,29 +736,10 @@ class yfbcblr():
         # Closes the smtp server.
         smtpserver.quit()
 
-    def generateMemberID(self,dataNeeded):
-        # Generate a unique member ID
-        # Logic : [<firstletter><fourlettersofthelastname><positionoffirstnamesecondletterintheserries/3><positionoflastnamelastletterinserries>]
-        # numbering starts from 0
-        from random import randint
-        series = 'abcdefghijklmnopqrstuvwxyz'
-        if (dataNeeded[1]=='<empty>' or dataNeeded[1]==''):
-            memberid = dataNeeded[0][0:4].lower() + str(randint(1000,9999))
-        elif len(dataNeeded[1]) < 4:
-            # <first name first letter><all second name><fill rest with random numbers to make it 8 total>
-            memberid = dataNeeded[0][0].lower() + dataNeeded[1].lower() + str(randint(10**(7-len(one+two)),10**((8-len(one+two)))))
-        else:
-            memberidString = str(dataNeeded[0].lower()[0]) + str(dataNeeded[1].lower()[0:4])
-            memberidDigits = str(int(series.index(dataNeeded[0].lower()[1])/3)) + \
-                             str(series.index(dataNeeded[1].lower()[len(dataNeeded[1])-1]))
-            digitsToFill = str(randint(10**(7-len(memberidDigits+memberidString)),10**(8-len(memberidDigits+memberidString))))
-            memberid = memberidString + digitsToFill + memberidDigits
-        return memberid
-
     def CSVOperation(self,data,filename,mode,writeNewOrAppend):
         import os,csv
         # Change directory to where the data file will live
-        os.chdir('/home/pi/HomeProject/YFBC/')
+        os.chdir(self.csvFileLocation)
 
         if mode == 'write':
             with open(filename,writeNewOrAppend) as csvfile:
@@ -757,16 +755,20 @@ class yfbcblr():
                         break
             return matchedRow
         elif mode == 'lastrow':
-            with open(filename,'r') as csvfile:
-                rd = csv.reader(csvfile,delimiter=',')
-                data = list(rd)
-                lastRow = data[len(data)-1]
+            data = self.getFileDataAsAList(filename)
+            lastRow = data[len(data)-1]
             return lastRow
                     
-
+    def getFileDataAsAList(self,filename):
+        import csv
+        with open(filename,'r') as csvfile:
+                rd = csv.reader(csvfile,delimiter=',')
+                data = list(rd)
+        return data
+    
     def uploadDataFilesToDrive(self):
         import os
-        os.chdir('/home/pi/HomeProject/YFBC/')
+        os.chdir(self.csvFileLocation)
         os.system('sudo python uploadFileToDrive.py')
         tk.messagebox.showinfo(parent=self.rootWindow,message='Update successful!')
 
@@ -789,26 +791,26 @@ class yfbcblr():
     def detectRFIDCard(self):
         self.cardDetected = False
         while(self.cardDetected == False):
+            # get card details
             idFromCard,dataFromCard = self.readCard()
-            # The unique user ID is only 8 characters long. Only read that many from the tag for validation
-            dataFromCard = dataFromCard[0:8]
-            if (str(dataFromCard) == 'adminkey') or (self.validate([str(dataFromCard),str(idFromCard)],'uniqueIDAndCard')):
+            # detect card content if admin and card ID if user
+            if (str(dataFromCard[0:8]) == 'adminkey') or (self.validate(str(idFromCard),'uniqueCardID')):
                 self.cardDetected = True 
-                if str(dataFromCard) == 'adminkey':
+                if str(dataFromCard[0:8]) == 'adminkey':
                     # Admin access
                     self.adminScreen()
-                elif self.validate([str(dataFromCard),str(idFromCard)],'uniqueIDAndCard'):
-                    self.writeEventLogsAfterCardDetection(dataFromCard)
+                elif self.validate(str(idFromCard),'uniqueCardID'):
+                    # User entry log
+                    self.writeEventLogsAfterCardDetection(str(idFromCard))
         
 # Routine
 if __name__ == '__main__':
     import RPi.GPIO as GPIO
     GPIO.setwarnings(False)
     try:
-        m = yfbcblr()
-        m.count = 0
+        yfbc = yfbcblr()
         # Start card detection loop
-        m.detectRFIDCard()
+        yfbc.detectRFIDCard()
     except e:
         print(e)
         GPIO.cleanup()
