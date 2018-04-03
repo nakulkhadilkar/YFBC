@@ -2,7 +2,7 @@
 ''' Python script to run the Graphical User Interface for member entry and payment tracking
 at Yellow Feathers Badminton Club, Bengaluru '''
 # Copyrights : Nakul Khadilkar, Vinod Khadilkar 2018
-# Update - March 21 2018
+# Update - April 3 2018
 
 import tkinter as tk
 import time
@@ -12,7 +12,7 @@ class yfbcblr():
     def __init__(self):
         import calendar
         self.d,self.m,self.y = [list(range(1,32)),calendar.month_name[1:13],list(range(2017,2022,1))]
-        self.csvFileLocation = '/home/pi/HomeProject/YFBC/
+        self.csvFileLocation = '/home/pi/HomeProject/YFBC/'
         self.startScreen(False) 
         
     def createDataFiles(self):
@@ -155,8 +155,6 @@ class yfbcblr():
         self.monthlyMembersPayFrame = tk.Frame(self.mainScreen, bg='white')
         self.monthlyMembersPayFrame.place(relx=0.02, rely=0.475, relheight=0.75, relwidth=0.475, anchor='w')
         tk.Label(self.monthlyMembersPayFrame, text=' Active Monthly Members',font=("Bookman Old Style",self.getRelativeSize(20,'area')), borderwidth=2, relief='groove').place(relx=0, rely=0, relheight=0.05, relwidth=1, anchor='nw')
-        tk.Label(self.monthlyMembersPayFrame, text='Column 1',font=("Bookman Old Style",self.getRelativeSize(20,'area')), borderwidth=2, relief='groove').place(relx=0, rely=0.05, relheight=0.05, relwidth=1/2, anchor='nw')
-        tk.Label(self.monthlyMembersPayFrame, text='Column 2',font=("Bookman Old Style",self.getRelativeSize(20,'area')), borderwidth=2, relief='groove').place(relx=0.5, rely=0.05, relheight=0.05, relwidth=1/2, anchor='nw')
         self.addMemberDataToList(self.monthlyMembersPayFrame,'monthly')
         
     def addMemberDataToList(self,frame,listType):
@@ -206,12 +204,13 @@ class yfbcblr():
                 with open('YFBCMemberPaymentData.csv','r') as csvfile:
                     rd = csv.reader(csvfile,delimiter=',')
                     for row in rd:
-                        if (userCardID in row[0]) and str(time.strftime('%B') in row[1]) and not(monthlyMembers[i] in activeMembers):
+                        if (userCardID in row[0]) and (time.strftime('%B') in str(row[1])) and (time.strftime('%Y') in str(row[1]))\
+                           and not(monthlyMembers[i] in activeMembers):
                             activeMembers.append(monthlyMembers[i])
             for n in range(len(activeMembers)):
                 ypos = int(((n-1)%2)+((n-1)/2)) # need a series that goes like [0,0,1,1,2,2.....]
                 tk.Label(frame, text=activeMembers[n], bg='white', font=("Bookman Old Style",self.getRelativeSize(10,'area')), \
-                         borderwidth=2, relief='groove').place(relx=(n%2)*0.5, rely=0.1+(ypos*(0.9/limit)), relheight=(0.9/limit), relwidth=1/2, anchor='nw')
+                         borderwidth=2, relief='groove').place(relx=(n%2)*0.5, rely=0.05+(ypos*(0.9/limit)), relheight=(0.9/limit), relwidth=1/2, anchor='nw')
             
     def memberScreen(self,forAdmin,adminView):
         # member check-in screen
@@ -352,7 +351,7 @@ class yfbcblr():
         for e in range(0,len(lastFivePayments)):
             tk.Label(frame, text="\n".join(re.findall("(?s).{,25}", lastFivePayments[e][1].replace('-',', ').replace(':',' of ')))[:-1],font=("Bookman Old Style",self.getRelativeSize(15,'area')), bg='white',borderwidth=2, relief='groove').place(relx=0, rely=(e+1)*(1/7), relheight=1/7, relwidth=1/2, anchor='nw')
             tk.Label(frame, text=lastFivePayments[e][2],font=("Bookman Old Style",self.getRelativeSize(15,'area')), bg='white',borderwidth=2, relief='groove').place(relx=0.5, rely=(e+1)*(1/7), relheight=1/7, relwidth=1/2, anchor='nw')
-        if any(time.strftime('%B') in row[1] for row in lastFivePayments) and any(time.strftime('%Y') in row[1] for row in lastFivePayments):
+        if any((time.strftime('%B') in row[1]) and (time.strftime('%Y') in row[1]) for row in lastFivePayments):
             tk.Label(frame, text='Note: ' + time.strftime('%B') + ' membership fees are paid.',font=("Bookman Old Style",self.getRelativeSize(20,'area')), bg='white', fg='blue', relief='groove').place(relx=0, rely=6/7, relheight=1/7, relwidth=1, anchor='nw')
         else:
             tk.Label(frame, text='Note: ' + time.strftime('%B') + ' membership fees are due.',font=("Bookman Old Style",self.getRelativeSize(20,'area')), bg='white', fg='red', relief='groove').place(relx=0, rely=6/7, relheight=1/7, relwidth=1, anchor='nw')
@@ -498,6 +497,8 @@ class yfbcblr():
             month.place(relx=0.3, rely=0.30, anchor='nw')
             for names in calendar.month_name[1:13]:
                 month.insert(tk.END,names)
+            # set current month as choice
+            month.selection_set(calendar.month_name[1:13].index(time.strftime('%B')))
             scrollbar1 = tk.Scrollbar(month,orient=tk.VERTICAL, command=month.yview)
             scrollbar1.place(relx=1,rely=0.5,relheight=1,anchor='e')
             month.config(yscrollcommand=scrollbar1.set)
@@ -506,8 +507,11 @@ class yfbcblr():
             textLabel2 = tk.Label(paymentScreen, text='Select Year :',bg='gray',width=self.getRelativeSize(20,'width'), font=("Bookman Old Style",self.getRelativeSize(20,'area'))).place(relx=0.05, rely=0.60, anchor='nw')
             year = tk.Listbox(paymentScreen, width=self.getRelativeSize(40,'width'), height=self.getRelativeSize(8,'height'), font=("Bookman Old Style",self.getRelativeSize(17,'area')), exportselection=0)
             year.place(relx=0.3, rely=0.60, anchor='nw')
-            for names in list(range(2017,2022,1)):
+            years = list(range(2017,2022,1))
+            for names in years:
                 year.insert(tk.END,names)
+            # set current year as choice
+            year.selection_set(years.index(int(time.strftime('%Y'))))
             scrollbar2 = tk.Scrollbar(year,orient=tk.VERTICAL, command=year.yview)
             scrollbar2.place(relx=1,rely=0.5,relheight=1,anchor='e')
             year.config(yscrollcommand=scrollbar2.set)
@@ -518,9 +522,10 @@ class yfbcblr():
             label = tk.Label(pdScreen, text='Select Payment Date :',font=("Bookman Old Style",self.getRelativeSize(15,'area'))).place(relx=0,rely=0,relheight=0.6,relwidth=1,anchor='nw')
             # drop-down menus for payment date
             defaultValues = [tk.StringVar(),tk.StringVar(),tk.StringVar()]
-            defaultValues[0].set('<Date>')
-            defaultValues[1].set('<Month>')
-            defaultValues[2].set('<Year>')
+            # set today as default payment date
+            defaultValues[0].set(time.strftime('%d'))
+            defaultValues[1].set(time.strftime('%B'))
+            defaultValues[2].set(time.strftime('%Y'))
             dd = tk.OptionMenu(pdScreen, defaultValues[0], *list(range(1,32))).place(relx=0, rely=0.6, relheight=0.4, relwidth=1/3)
             mm = tk.OptionMenu(pdScreen, defaultValues[1], *calendar.month_name[1:13]).place(relx=1/3, rely=0.6, relheight=0.4, relwidth=1/3)
             yyyy = tk.OptionMenu(pdScreen, defaultValues[2], *list(range(2017,2022))).place(relx=2/3, rely=0.6, relheight=0.4, relwidth=1/3)
