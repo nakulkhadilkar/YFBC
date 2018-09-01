@@ -2,7 +2,7 @@
 ''' Python script to run the Graphical User Interface for member entry and payment tracking
 at Yellow Feathers Badminton Club, Bengaluru '''
 # Copyrights : Nakul Khadilkar, Vinod Khadilkar 2018
-# Update - April 3 2018
+# Update - August 31 2018
 
 import tkinter as tk
 import time
@@ -483,7 +483,7 @@ class yfbcblr():
 
             # Member choice
             textLabel = tk.Label(paymentScreen, text='Select member :',bg='gray',width=self.getRelativeSize(20,'width'), font=("Bookman Old Style",self.getRelativeSize(20,'area'))).place(relx=0.05, rely=0.15, anchor='nw')
-            user = tk.Listbox(paymentScreen, width=self.getRelativeSize(40,'width'), height=self.getRelativeSize(8,'height'), font=("Bookman Old Style",self.getRelativeSize(17,'area')), exportselection=0)
+            user = tk.Listbox(paymentScreen, width=self.getRelativeSize(40,'width'), height=self.getRelativeSize(8,'height'), font=("Bookman Old Style",self.getRelativeSize(17,'area')), selectmode='multiple', exportselection=0)
             user.place(relx=0.3, rely=0.05, anchor='nw')
             for names in self.getAllUserNames():
                 user.insert(tk.END,names)
@@ -554,46 +554,51 @@ class yfbcblr():
                 # future date
                 tk.messagebox.showinfo(parent=self.rootWindow,message='Payment cannot be posted for a future date. Enter a present or a past date!',title='Input Error')
             else:
+                import calendar
                 # Add a new entry
                 members = self.getAllUserNames()
-                data = [self.getUserIDfromName(members[entries[0][0]]),entries[1],self.y[entries[2][0]]]
-                # no empty selections
-                # entries = [<userid>,<'mon1-mon2-mon:year'>]
-                import calendar
-                months = [calendar.month_name[x+1] for x in list(data[1])]
-                monthString = '-'.join(months)+':'+str(data[2])
-                dataToWrite = [data[0],monthString,today]
 
-                # Check if payment has already been made
-                PaymentData = self.getFileDataAsAList(self.csvFileLocation + 'YFBCMemberPaymentData.csv')
-                PaymentData.pop(0) # remove first line
-                PaymentData = [item[:-1] for item in PaymentData] # remove payment date field
-                PreviousPayment = False
-                for d in PaymentData:
-                    # If unique card ID, month, year combination is found in the same line
-                    if (d[0] == str(data[0])) and (0 in [d[1].find(i) for i in months]) and (str(data[2]) in d[1]):
-                        PreviousPayment = True
-                        break                
+                # Repeat entries for all members selected
+                for i in range(0,len(entries[0])):
+                    LastMember = (i == (len(entries[0])-1))
+                    data = [self.getUserIDfromName(members[entries[0][i]]),entries[1],self.y[entries[2][0]]]
+                    # no empty selections
+                    # entries = [<userid>,<'mon1-mon2-mon:year'>]
+                    months = [calendar.month_name[x+1] for x in list(data[1])]
+                    monthString = '-'.join(months)+':'+str(data[2])
+                    dataToWrite = [data[0],monthString,today]
 
-                # write to file if not already paid
-                if PreviousPayment == False:
-                    self.CSVOperation(dataToWrite,'YFBCMemberPaymentData.csv','write','a')
+                    # Check if payment has already been made
+                    PaymentData = self.getFileDataAsAList(self.csvFileLocation + 'YFBCMemberPaymentData.csv')
+                    PaymentData.pop(0) # remove first line
+                    PaymentData = [item[:-1] for item in PaymentData] # remove payment date field
+                    PreviousPayment = False
+                    for d in PaymentData:
+                        # If unique card ID, month, year combination is found in the same line
+                        if (d[0] == str(data[0])) and (0 in [d[1].find(i) for i in months]) and (str(data[2]) in d[1]):
+                            PreviousPayment = True
+                            break                
 
-                    # validate entry and exit current screen only on success
-                    latestEntry = self.CSVOperation([],'YFBCMemberPaymentData.csv','lastrow',[])
-                    if latestEntry == list(dataToWrite):
-                        # success - convey message and go to admin screen
-                        tk.messagebox.showinfo(parent=self.rootWindow,message='Payment successfully posted!')
-                        self.monthlyMembersPayFrame.destroy()
-                        self.createFrameAndAddMonthlyMembers()
-                        self.admScreen.lift()
-                        self.removeScreen(screen)
+                    # write to file if not already paid
+                    if PreviousPayment == False:
+                        self.CSVOperation(dataToWrite,'YFBCMemberPaymentData.csv','write','a')
+
+                        # validate entry and exit current screen only on success
+                        latestEntry = self.CSVOperation([],'YFBCMemberPaymentData.csv','lastrow',[])
+                        if latestEntry == list(dataToWrite):
+                            if LastMember:
+                                # success - convey message and go to admin screen
+                                tk.messagebox.showinfo(parent=self.rootWindow,message='Payment successfully posted!')
+                                self.monthlyMembersPayFrame.destroy()
+                                self.createFrameAndAddMonthlyMembers()
+                                self.admScreen.lift()
+                                self.removeScreen(screen)
+                        else:
+                            # failure - Stay on current screen
+                            tk.messagebox.showinfo(parent=self.rootWindow,message='Payment could not be posted. Please try again!')
                     else:
                         # failure - Stay on current screen
-                        tk.messagebox.showinfo(parent=self.rootWindow,message='Payment could not be posted. Please try again!')
-                else:
-                    # failure - Stay on current screen
-                    tk.messagebox.showinfo(parent=self.rootWindow,message='A payment for the month has already been posted!')
+                        tk.messagebox.showinfo(parent=self.rootWindow,message='A payment for the month has already been posted!')
 
     def setupScrollingListBox(self,parent,data,fontSize,positionData):
         # positionData = [relx,rely,relwidth,relheight]
